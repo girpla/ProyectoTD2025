@@ -15,5 +15,149 @@ knitr::opts_chunk$set(echo = TRUE)
 library(pdftools) # Para leer texto de archivos PDF
 library(stringr) # Para manipular cadenas de texto (strings)
 library(dplyr)# Para trabajar con data frames de forma más eficiente
+
+#Guardamos la ruta de la carpeta donde están los tickets en carpeta_data
+carpeta_data <- "data"
+
+#Obtenemos todos los nombres de los tickets que tengan extensión pdf y los guardamos en una lista
+tickets <- list.files(carpeta_data, pattern = "\\.pdf$")
+
+#Creamos el bucle for para que de cada ticket de la lista lea y guarde la información
+for (ticket in tickets){
+  # Función para procesar un ticket
+procesar_ticket <- function(ticket) {
+  #Extraemos toda la información del ticket como un vector
+  texto <- pdf_text(ticket)
+  texto <- paste(texto, collapse = "\n") #unimos todo el texto en un solo string
+  supermercado <- "MERCADONA"
+  
+  # Obtenemos las líneas de texto individuales 
+  lineas <- str_split(texto, "\n")[[1]]
+  
+  # Dirección (línea que contenga "CTRA.")
+  # Dirección: la primera línea después de "MERCADONA, S.A."
+  #Si encuentra la linea MERCADONA, toma la siguiente como dirección
+idx_mercadona <- grep("MERCADONA, S\\.A\\.", lineas)
+direccion <- if (length(idx_mercadona) > 0 && idx_mercadona + 1 <= length(lineas)) {
+  str_trim(lineas[idx_mercadona + 1]) #Eliminamos los espacios en blanco(tanto al principio como en el final)
+} else {
+  NA
+}
+# Para cargar el codigo postal y el municipio utilizamos la siguiente expresión:  "^\\s*\\d{5}\\s+\\w+", lo que hace es coger el inicio de linea (^) permitiendo espacios al principio de la linea(\s*), coge los proimeros 5 dígitos (que són los del codigo postal(\d{5})), luego reconoce uno omas espacios(\s+) para separar el codigo postal del municipio cogiendo una o mas letras (\w+)
+  linea_cp_municipio <- lineas[grepl("^\\s*\\d{5}\\s+\\w+", lineas)][1]
+  codigo_postal <- ifelse(!is.na(linea_cp_municipio), str_extract(linea_cp_municipio, "\\d{5}"), NA)
+  municipio <- ifelse(!is.na(linea_cp_municipio), str_trim(str_remove(linea_cp_municipio, "^\\s*\\d{5}\\s+")), NA)
+  
+   # Extraemos el telefono buscando la palabra telefono y luego seleciónamos los digitos posteriores
+  telefono <- str_extract(texto, "TELÉFONO: \\d+")
+  telefono <- str_remove(telefono, "TELÉFONO: ")
+  
+   # Extraemos la fecha seleccionando los digitos, 2 para el dia, 2 para el mes y 4 para el año, lo hacemos igual con la hora
+  fecha <- str_extract(texto, "\\d{2}/\\d{2}/\\d{4}")
+  
+  hora <- str_extract(texto, "(?<=\\d{2}/\\d{2}/\\d{4} )\\d{2}:\\d{2}")
+  #Extraemos el número de operador buscando OP y copiando los números siguientes
+  op <- str_extract(texto, "OP: \\d+")
+  op <- str_remove(op, "OP: ")
+  # Para extraer el número de tienda, el de caja y el de la factura primero seleccionamos toda la linea de digitos de factura simplificada, y luego los separamos 
+  factura <- str_extract(texto, "FACTURA SIMPLIFICADA: \\d+-\\d+-\\d+")
+  partes <- unlist(str_split(str_remove(factura, "FACTURA SIMPLIFICADA: "), "-"))
+  tienda <- partes[1]
+  caja <- partes[2]
+  num_factura <- partes[3]
+   # Extraemos en el caso de que se haya utilizado el parcking la hora de entrada y salida, esto lo hacemos buscando las palabras entrada y salida y guardamos los digitos de la hora y de los minutos, en el caso de que no se haya utilizado el parking se anotara NA
+  entrada <- str_extract(texto, "ENTRADA\\s+\\d{2}:\\d{2}")
+  entrada <- ifelse(is.na(entrada), NA, str_extract(entrada, "\\d{2}:\\d{2}"))
+  salida <- str_extract(texto, "SALIDA\\s+\\d{2}:\\d{2}")
+  salida <- ifelse(is.na(salida), NA, str_extract(salida, "\\d{2}:\\d{2}"))
+   # Extraemos el total del ticket y lo convertimos en decimal.
+  total <- str_match(texto, "TOTAL \\(€\\)\\s+(\\d+,\\d{2})")[,2]
+  total <- ifelse(!is.na(total), as.numeric(str_replace(total, ",", ".")), NA)
+   # Selecionamos los 4 últimos dijitos disponibles de la tarjeta (por si nos sirviera en el futuro) , el nc, el AUT, el AID, y el ARC.
+  tarjeta <- str_extract(texto, "TARJ\\. BANCARIA.*?(\\d{4})")
+  tarjeta <- str_extract(tarjeta, "\\d{4}")
+  
+  nc <- str_extract(texto, "N\\.C: \\d+")
+  nc <- str_remove(nc, "N\\.C: ")
+  
+  aut <- str_extract(texto, "AUT: \\d+")
+  aut <- str_remove(aut, "AUT: ")
+  
+  aid <- str_extract(texto, "AID: [\\w\\d]+")
+  aid <- str_remove(aid, "AID: ")
+  
+  arc <- str_extract(texto, "ARC: \\d+")
+  arc <- str_remove(arc, "ARC: ")
+  # Guardamos también el típo de pago, aunque solamente si se encuentra entre las opciones que hemos puesto(son suficientes)
+  tipo_pago <- str_match(texto, "(VISA|MASTERCARD|AMEX|DÉBITO|CRÉDITO|DEBITO|CREDITO|EFECTIVO)[ /A-Z]*")[,1]
+  # Para extraer los productos primero buscamos las líneas que representen productos
+  idx_productos <- grep("^\\d+\\s+.*\\d+,\\d{2}$", lineas)
+   #Luego recorremos cada línea para extraer la información de cada uno de ellos
+  productos <- lapply(lineas[idx_productos], function(linea) {
+    partes <- str_match(linea, "^(\\d+)\\s+(.*?)\\s+(\\d+,\\d{2})(?:\\s+(\\d+,\\d{2}))?$")
+    cantidad <- as.numeric(partes[2])
+    producto <- str_trim(partes[3])
+    precio_unit <- ifelse(is.na(partes[4]), partes[5], partes[4])
+    precio_unit <- as.numeric(str_replace(precio_unit, ",", "."))
+    importe <- ifelse(!is.na(partes[5]), as.numeric(str_replace(partes[5], ",", ".")), precio_unit * cantidad)
+    #Devolvemos el data frame por producto
+    data.frame(
+      producto = producto,
+      cantidad = cantidad,
+      precio_unitario = precio_unit,
+      importe = importe,
+      supermercado = supermercado,
+      direccion = direccion,
+      codigo_postal = codigo_postal,
+      municipio = municipio,
+      telefono = telefono,
+      fecha = fecha,
+      hora = hora,
+      op = op,
+      tienda = num_tienda,
+      caja = num_caja,
+      num_factura = num_factura,
+      entrada = hora_entrada,
+      salida = hora_salida,
+      total = precio_total,
+      tarjeta = num_tarjeta,
+      nc = nc,
+      aut = aut,
+      aid = aid,
+      arc = arc,
+      tipo_pago = tipo_pago,
+      stringsAsFactors = FALSE
+    )
+  })
+  #Unimos todos los data frames en uno solo
+  do.call(rbind, productos)
+}
+}
+
+#cambiar los tipos de datos
+
+tickets_df$cantidad <- as.integer(tickets_df$cantidad)
+tickets_df$codigo_postal <- as.integer(tickets_df$codigo_postal)
+tickets_df$telefono <- as.integer(tickets_df$telefono)
+tickets_df$op <- as.integer(tickets_df$op)
+tickets_df$tienda <- as.integer(tickets_df$tienda)
+tickets_df$caja <- as.integer(tickets_df$caja)
+tickets_df$num_factura <- as.integer(tickets_df$num_factura)
+tickets_df$tarjeta <- as.integer(tickets_df$tarjeta)
+tickets_df$nc <- as.integer(tickets_df$nc)
+tickets_df$aut <- as.integer(tickets_df$aut)
+tickets_df$arc <- as.integer(tickets_df$arc)
+
+tickets_df$fecha <- dmy(tickets_df$fecha)
+tickets_df$hora <- as.POSIXct(tickets_df$hora, format = "%H:%M")
+
+#En el caso de que no se haya utilizado parking las horas de entrada y salida seran las 00:00
+tickets_df$entrada <- as.POSIXct(tickets_df$entrada, format = "%H:%M")
+tickets_df$entrada[is.na(tickets_df$entrada)] <- as.POSIXct("00:00", format = "%H:%M")
+
+tickets_df$salida <- as.POSIXct(tickets_df$salida, format = "%H:%M")
+tickets_df$salida[is.na(tickets_df$salida)] <- as.POSIXct("00:00", format = "%H:%M")
+# Mostrar resultados
+print(tickets_df)
 ```
 
