@@ -8,3 +8,12 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+
+```{r}
+# Cargamos las librerías necesarias
+library(pdftools) # Para leer texto de archivos PDF
+library(stringr) # Para manipular cadenas de texto (strings)
+library(dplyr)# Para trabajar con data frames de forma más eficiente
+```
+
