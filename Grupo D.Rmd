@@ -8,8 +8,92 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+**INTRODUCCIÓN**
+En este proyecto se aborda el análisis exploratorio de datos a partir de
+tickets de supermercado, con el objetivo de extraer información
+relevante sobre los hábitos de consumo, productos adquiridos, precios
+y comportamiento de compra. A través del procesamiento de estos
+tickets utilizando el lenguaje de programación R, se ha diseñado un
+sistema capaz de leer automáticamente la información contenida en los
+comprobantes de compra y estructurarla en un data frame que facilite
+su análisis posterior.
+Este enfoque permite aplicar técnicas de limpieza, transformación y
+visualización de datos sobre un conjunto no estructurado, como lo es
+una imagen o texto plano de un ticket., que permiten reducir gastos a la
+hora de utilizar conjuntos masivos de datos. Además, se busca
+responder a preguntas de interés común, como por ejemplo: ¿cuáles
+son los productos más comprados?, ¿existen patrones de compra
+recurrentes según el día o la hora?, ¿qué categorías concentran el
+mayor gasto?, entre otras. Todo ello con el fin de poner en práctica los
+conocimientos adquiridos en la asignatura de Tratamiento de los Datos
+en el Grado en Ciencia de Datos.
+El proyecto se ha dividido en diferentes fases: primero, la recolección
+de tickets y su conversión a un formato legible; en segundo lugar, la
+extracción automatizada de la información mediante técnicas de
+procesamiento de texto; posteriormente, el almacenamiento de los
+datos en un marco estructurado para su análisis; y finalmente, la
+exploración y visualización de patrones significativos en los datos.
 
+**PREGUNTAS**
+1.¿Cuáles son las frutas más compradas durante la primavera?
+(Filtrar por fecha y categoría de producto).
 
+2.¿Qué productos suelen comprarse más durante festivos como Navidad, Semana Santa o Fallas?
+(Comparar ventas en fechas clave con el resto del año).
+
+3.¿Se compran productos diferentes en zonas urbanas frente a rurales?
+(Agrupar por ciudad o código postal y comparar top productos).
+
+4.¿Qué productos suelen comprarse juntos con frecuencia? (por ejemplo, pan con chocolate)
+(Analizar combinaciones frecuentes dentro del mismo ticket).
+
+5.¿Qué productos se mantienen en la cesta aunque cambien de precio?
+(Observar si bajadas o subidas de precio afectan a las unidades compradas).
+
+6.¿Cuántos productos se compran en promedio por ticket?
+(Contar productos por ticket y calcular la media).
+
+7.¿Qué categorías suelen comprarse en conjunto? (Ej. frutas + lácteos)
+(Clasificar productos por categoría y ver combinaciones más frecuentes).
+
+8.¿Cómo cambia el gasto promedio según el día de la semana?
+(Comparar el total gastado y cantidad de tickets por día).
+
+9.¿Qué día tiene menos volumen de compras? ¿Y cuál el mayor?
+(Contar número de tickets por día de la semana).
+
+10¿Qué mes registra mayores compras de frutas y verduras?
+(Filtrar por categoría y agrupar por mes).
+
+11. ¿Qué productos tienen mayor rotación semanal y cuáles permanecen más tiempo sin comprarse?
+(Agrupar ventas por semana y producto, analizar frecuencia de compra).
+
+12. ¿Cómo afecta la climatología al tipo de productos comprados? (ej. helados en verano, sopas en invierno)
+(Relacionar fechas con estaciones y tipos de producto).
+
+13. ¿Qué impacto tienen las promociones o descuentos en la cantidad comprada de un producto?
+(Comparar unidades vendidas antes, durante y después de una promoción).
+
+14. ¿Qué ticket promedio se observa según el tipo de establecimiento (urbano, rural, turístico)?
+(Agrupar por zona y calcular gasto promedio por ticket).
+
+15. ¿Qué productos suelen ser los primeros en desaparecer en compras grandes (+20 productos)?
+(Analizar orden de productos en tickets extensos).
+
+16. ¿Existen diferencias de compra entre clientes que compran entre semana frente a fines de semana?
+(Comparar volumen y tipo de productos por día).
+
+17. ¿Hay patrones de consumo distintos entre zonas costeras y zonas del interior?
+(Comparar categorías más compradas según localización geográfica).
+
+18. ¿Qué marcas blancas se compran más en comparación con productos de marca?
+(Clasificar productos por tipo de marca y analizar proporciones de compra).
+
+19. ¿Cuáles son los productos más comprados por la mañana frente a la tarde?
+(Agrupar tickets por franja horaria y analizar top productos).
+
+20. ¿Qué artículos aumentan su venta a fin de mes (posiblemente por cobro de sueldos)?
+(Comparar ventas por semana del mes, especialmente última semana)
 ```{r}
 # Cargamos las librerías necesarias
 library(pdftools) # Para leer texto de archivos PDF
