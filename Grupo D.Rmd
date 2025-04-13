@@ -1,0 +1,10 @@
+---
+title: "Grupo D"
+author: "Grupo D"
+date: "2025-04-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
